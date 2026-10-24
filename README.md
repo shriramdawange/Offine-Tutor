@@ -1,65 +1,56 @@
-# 📚 OfflineTutor
+# API-Integrated Tutor (Cloud-first + local fallback)
 
-A **100% offline** study companion. Upload PDFs/notes, and a local LLM (Qwen2.5-Coder 3B via Ollama)
-either answers your questions with citations, or teaches you the material from zero to pro.
+A document-grounded AI study companion. Upload PDFs, notes, text, code, CSV, and other supported files, then ask questions or learn the material through a structured course. Retrieval remains local and uses the project's lightweight, dependency-free BM25 implementation.
 
-## Quick start
+## What changed
 
-1. Double-click **`setup.bat`** (one time only).
-2. From then on, **`start.bat` is all you need** — even at the office:
-   - starts Ollama automatically if it's not running
-   - starts the web server (skips if already running)
-   - opens http://localhost:8000 in your browser
-3. To shut everything down: **`stop.bat`**
+- **Cloud-first generation:** Uses an OpenAI-compatible Chat Completions API when `API_KEY` is configured.
+- **Automatic local fallback:** If the cloud request fails, returns an error, times out, or returns an invalid/empty answer, generation automatically switches to Ollama.
+- **Local model preparation:** If Ollama is installed but the configured model is missing, the application attempts to start Ollama and pull the model automatically.
+- **BM25 retrieval:** Existing pure-Python BM25 ranks chunks from the student's uploaded documents. No embedding model, vector database, or GPU is required.
+- **Grounded answers and citations:** Ask & Learn uses retrieved excerpts and citations such as `[filename · part/total]`.
+- **Learning modes:** Ask & Learn, Fresh → Pro, and Pick Topics remain available.
+- **Session isolation:** Uploaded documents, chat, curriculum, and progress remain session-scoped. Deleting a session removes its stored data and in-memory retrieval cache.
 
-No internet needed at any point.
+## Quick start (Windows)
 
-## The two learning modes
+1. Install Python 3.11+ and [Ollama](https://ollama.com/download).
+2. Run `setup.bat` once.
+3. Copy `.env.example` to `.env` and configure your cloud API settings. The application reads environment variables; the launcher loads `.env` automatically.
+4. Run `start.bat` and open `http://localhost:8000`.
 
-| Mode | What it does |
-|---|---|
-| 💬 **Ask & Learn** | Grounded Q&A over your documents with `[filename #part]` citations. If it's not in your docs, it says so. |
-| 🎓 **Fresh → Pro** | Builds a full course plan from your docs, then teaches lesson-by-lesson — analogies, worked examples, recaps, and practice questions. Progress bar, previous/next navigation, jump to any lesson. |
-| 📑 **Pick Topics** | Generates a document index/table-of-contents. You pick exactly what you want to master; the tutor deep-dives that topic only. |
+If the cloud API is unavailable, Ollama is used automatically. The first local fallback may take time because the model may need to download. Make sure the machine has enough disk space and internet access for that initial download. After the model is downloaded, local generation works without the cloud API.
 
-The chat input works in every tab — questions asked during a lesson or topic stay in that context automatically (each mode keeps its own conversation thread).
+## Configuration
 
-## Test gate (MCQ quizzes)
-
-Toggle **🧪 Test gate** in the Fresh → Pro sidebar:
-
-- **OFF (default)** — lessons flow one after another, no tests.
-- **ON** — the tutor writes a fresh 5-question MCQ test from your documents after each lesson; you must score ≥60% to unlock the next lesson. Wrong answers show explanations, and you can retry or ask for entirely new questions.
-- Answer keys never leave the server — grading happens locally in `tests.json`.
-
-## Memory & privacy guarantees (by design)
-
-- The LLM is called **statelessly** every time (`POST /api/chat`) — Ollama keeps **no conversation memory**, nothing is stored in any "universal model memory".
-- All context lives in **your session folder**: `data/sessions/<id>/`
-  - `docs/` original uploads · `chunks.json` text chunks · `chat.json` history · `curriculum.json` / `topics.json` progress
-- **Deleting a session wipes everything**: its folder on disk, its RAM cache (BM25 index + chunk cache), and chat history are all removed immediately.
-- "Delete ALL data" in the sidebar nukes `data/sessions` completely.
-
-## Lightweight by design
-
-- Retrieval uses a **pure-Python BM25 index** written from scratch — no embedding models, no GPU, no numpy, no vector DB.
-- Model runs via **Ollama**, which auto-unloads the model from RAM after ~20 min idle (`KEEP_ALIVE` in `app/config.py`). Idle RAM ≈ 0 for the LLM; active ≈ ~2 GB for the 3B Q4 model.
-- Context is capped: top-4 retrieved chunks (~5 KB), last 8 turns of history (~6 KB), 4096-token context window. RAM stays flat even after hours of use.
-- Responses stream token-by-token so long lessons feel instant.
-
-## Tuning knobs — `app/config.py`
-
-| Setting | Default | Meaning |
+| Variable | Default | Meaning |
 |---|---|---|
-| `MODEL` | qwen2.5-coder:3b… | any Ollama model name works |
-| `NUM_CTX` | 4096 | context window (raise if you have RAM headroom) |
-| `TOP_K` | 4 | chunks retrieved per question |
-| `CHUNK_SIZE` | 1100 chars | document chunk size |
-| `KEEP_ALIVE` | 20m | how long the model stays loaded while idle |
-| `HISTORY_TURNS` | 8 | conversation turns sent back to the model |
+| `LLM_PROVIDER` | `auto` | `auto` or `api` tries cloud first; `local` uses Ollama directly |
+| `API_BASE_URL` | OpenAI API URL | Base URL for an OpenAI-compatible API |
+| `API_KEY` | empty | Cloud API key; never commit it |
+| `API_MODEL` | `gpt-4o-mini` | Cloud model name supported by the configured provider |
+| `API_TIMEOUT` | `45` | Cloud request timeout in seconds |
+| `OLLAMA_URL` | `http://localhost:11434` | Local Ollama endpoint |
+| `OLLAMA_MODEL` | `qwen2.5-coder:3b-instruct-q4_K_M` | Local fallback model |
+| `AUTO_PULL_LOCAL_MODEL` | `true` | Automatically prepare the local model when missing |
+| `TOP_K` | `4` | Number of BM25-ranked chunks sent as context |
+
+For an OpenAI-compatible provider, set `API_BASE_URL`, `API_KEY`, and `API_MODEL` to the values provided by that service. Do not put secrets in source files or frontend JavaScript.
+
+## Retrieval and answer behavior
+
+- BM25 indexes document chunks per session and is invalidated when documents are changed or the session is deleted.
+- Ask & Learn answers are instructed to use retrieved excerpts and cite their source.
+- If relevant text is not found, the tutor should say that the answer is not covered by the uploaded documents.
+- Both cloud and local generation receive the same messages and retrieved context; provider switching does not re-upload documents or rebuild the index.
+
+## Important runtime details
+
+- Cloud generation is buffered before display so a failure during the cloud request can safely trigger local fallback without mixing partial answers. The UI still renders the answer incrementally after the response is ready.
+- Automatic fallback requires Ollama to be installed and runnable. The first-time model pull requires internet access; subsequent fallback generation can run offline.
+- API credentials are read from environment variables and must not be committed.
+- Keep the server bound to localhost unless you add authentication, rate limiting, and deployment security controls.
 
 ## Supported files
 
-`.pdf` `.txt` `.md` `.csv` `.json` `.log` `.py` `.html` `.xml`
-
-> Tip: the project sits inside OneDrive — consider moving it out (or pausing sync) so OneDrive doesn't sync the venv/session data.
+See `app/ingest.py` for the authoritative list of supported file extensions.
