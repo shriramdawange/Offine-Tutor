@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from . import config, ingest, llm, retriever, store, tutor
 
-app = FastAPI(title="OfflineTutor")
+app = FastAPI(title="API-Integrated Tutor")
 
 STATIC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
@@ -55,6 +55,7 @@ def index():
 @app.get("/api/status")
 def status():
     return {
+        **llm.provider_status(),
         "model": config.MODEL,
         "ollama": llm.model_available(),
         "sessions": len(store.STORE.list_sessions()),
