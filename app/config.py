@@ -1,5 +1,7 @@
 import os
 
+from . import env as _env_loader  # Load project-local .env before reading settings.
+
 def _env(name: str, default: str) -> str:
     return os.getenv(name, default).strip()
 
