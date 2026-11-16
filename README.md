@@ -67,3 +67,14 @@ GET /api/models lists locally installed Ollama models. When OLLAMA_MODEL is unav
 ## Groq setup
 
 Copy .env.example to .env, set API_KEY to your Groq key, and never commit .env. The defaults use Groq's OpenAI-compatible endpoint and a default model; choose another enabled model if needed.
+
+
+## Groq model picker and connection test
+
+The top bar loads model IDs available to your Groq API key from Groq's `/models` endpoint. Select one to use it immediately in the current server process. **Test Groq** sends a short completion request to verify the selected model can generate. To keep a selection after restart, set `API_MODEL=<model-id>` in `.env`.
+
+The list reflects models visible to your key. Not every listed model necessarily supports every optional parameter. Chat uses the OpenAI-compatible `/chat/completions` endpoint; Ollama remains the automatic fallback if cloud generation fails.
+
+- `GET /api/provider/models` — list Groq models.
+- `PUT /api/provider/model` — select a model for this running process.
+- `POST /api/provider/test` — verify current model access with a short completion.

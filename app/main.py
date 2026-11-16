@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from . import config, ingest, llm, retriever, store, tutor, websearch
 
@@ -31,6 +31,10 @@ class ChatIn(BaseModel):
 
 class SubmitIn(BaseModel):
     answers: list
+
+
+class ModelSelectIn(BaseModel):
+    model: str = Field(min_length=1, max_length=160)
 
 
 def _safe_load(sid: str, name: str, default):
@@ -72,6 +76,84 @@ def models():
         "ollama_models": llm.available_local_models(),
         "selected_local_model": llm.provider_status()["local_model"],
     }
+
+
+
+def _groq_chat_model_ids() -> list[str]:
+    """Return models likely to support text chat, using the authenticated catalog."""
+    import requests
+
+    response = requests.get(
+        f"{config.API_BASE_URL}/models",
+        headers={"Authorization": f"Bearer {config.API_KEY}"},
+        timeout=(5, 15),
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
+        raise ValueError("Groq returned an unexpected model catalog.")
+    model_ids = set()
+    for item in payload["data"]:
+        if not isinstance(item, dict) or not item.get("id"):
+            continue
+        model_id = str(item["id"]).strip()
+        try:
+            context_window = int(item.get("context_window") or 0)
+        except (TypeError, ValueError):
+            context_window = 0
+        # Exclude known non-chat families and models too small for useful tutoring.
+        if context_window >= 4096 and not any(
+            part in model_id.lower() for part in ("whisper", "orpheus", "guard", "speech")
+        ):
+            model_ids.add(model_id)
+    return sorted(model_ids)
+
+
+@app.get("/api/provider/models")
+def provider_models():
+    """List text-chat model IDs available to the configured Groq API key."""
+    if not config.API_KEY:
+        return {"configured": False, "provider": "Groq", "active_model": config.API_MODEL, "models": []}
+    try:
+        models = _groq_chat_model_ids()
+        return {"configured": True, "provider": "Groq", "active_model": config.API_MODEL, "models": models}
+    except Exception as exc:
+        status_code = getattr(getattr(exc, "response", None), "status_code", None)
+        raise HTTPException(502, f"Could not load Groq models (HTTP {status_code or 'network error'}). Check API key and connectivity.") from exc
+
+
+@app.put("/api/provider/model")
+def select_provider_model(body: ModelSelectIn):
+    """Change the cloud model for this running server process."""
+    if not config.API_KEY:
+        raise HTTPException(400, "Add your Groq API key to .env and restart OfflineTutor.")
+    try:
+        available = set(_groq_chat_model_ids())
+    except Exception as exc:
+        raise HTTPException(502, "Unable to verify Groq chat-model access. Check the API key and connection.") from exc
+    if body.model not in available:
+        raise HTTPException(400, "That model is not available as a supported chat model to this Groq API key.")
+    config.API_MODEL = body.model
+    return {"active_model": config.API_MODEL, "note": "Runtime selection only. Set API_MODEL in .env to keep it after restart."}
+
+
+@app.post("/api/provider/test")
+def test_provider():
+    if not config.API_KEY:
+        raise HTTPException(400, "Groq API key is missing. Add API_KEY to .env.")
+    try:
+        import requests
+        response = requests.post(
+            f"{config.API_BASE_URL}/chat/completions",
+            headers={"Authorization": f"Bearer {config.API_KEY}", "Content-Type": "application/json"},
+            json={"model": config.API_MODEL, "messages": [{"role": "user", "content": "Reply with OK."}], "max_completion_tokens": 8, "temperature": 0},
+            timeout=(5, config.API_TIMEOUT),
+        )
+        response.raise_for_status()
+        return {"ok": True, "provider": "Groq", "model": config.API_MODEL}
+    except Exception as exc:
+        status_code = getattr(getattr(exc, "response", None), "status_code", None)
+        raise HTTPException(502, f"Groq test failed (HTTP {status_code or 'network error'}). Check model access, key, and network.") from exc
 
 
 @app.get("/api/sessions")

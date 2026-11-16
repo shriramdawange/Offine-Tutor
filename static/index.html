@@ -33,7 +33,12 @@ button{font-family:inherit}
 #wipeAll{color:var(--danger);cursor:pointer;text-decoration:underline}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
 #main{flex:1;display:flex;flex-direction:column;min-width:0}
-#topbar{display:flex;align-items:center;gap:10px;padding:11px 20px;border-bottom:1px solid var(--border);background:var(--bg2)}
+#topbar{display:flex;align-items:center;gap:10px;padding:11px 20px;border-bottom:1px solid var(--border);background:linear-gradient(120deg,#171f2b,#121821);box-shadow:0 6px 24px rgba(0,0,0,.16)}
+#modelControls{display:flex;align-items:center;gap:7px;margin-left:auto}
+#groqModel{max-width:220px;min-width:150px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--fg);font-size:12px}
+#testGroqBtn{white-space:nowrap}
+@media(max-width:900px){#sidebar{width:220px;min-width:220px}#topbar{flex-wrap:wrap;padding:10px 12px}#modelControls{margin-left:0}.tabs{margin-left:auto}}
+@media(max-width:640px){body{height:100dvh}#sidebar{width:64px;min-width:64px}.brand{padding:14px 8px;text-align:center}.brand h1{font-size:12px}.brand small,.side-foot,#sessionList .meta,#sessionList .nm{display:none}#newSessionBtn{margin:10px 8px;padding:10px 4px;font-size:0}#newSessionBtn:after{content:"+";font-size:20px}#sessionList{padding:5px}#sessionList .sess{padding:10px 6px;justify-content:center;font-size:0}#sessionList .sess:before{content:"◉";font-size:16px}#topbar{gap:6px}#sessTitle{max-width:45%;font-size:13px}.tabs{width:100%;order:5;overflow-x:auto;margin:0}.tab{white-space:nowrap;padding:7px 9px;font-size:11px}#modelControls{width:100%;order:4}#groqModel{flex:1;max-width:none}#inputBar{padding:9px;gap:7px}#engineHint{display:none!important}.chat{padding:14px 11px}.dropzone{padding:28px 18px}#courseSide{width:180px;min-width:180px}}
 #sessTitle{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tabs{display:flex;gap:4px;margin-left:auto}
 .tab{padding:7px 14px;border-radius:8px;border:1px solid transparent;background:none;color:var(--dim);cursor:pointer;font-size:13px;font-weight:500}
@@ -199,6 +204,7 @@ body{background:radial-gradient(ellipse at 20% -20%,#1a2c50 0,transparent 42%),v
     <div id="sessTitle">No session selected</div>
     <button class="btn sm hidden" id="filesBtn">📄 Files</button>
     <button class="btn sm hidden danger" id="deleteSessBtn">Delete session</button>
+    <div id="modelControls"><select id="groqModel" aria-label="Groq model"><option>Loading Groq models…</option></select><button class="btn sm" id="testGroqBtn">Test Groq</button></div>
     <div class="tabs">
       <button class="tab active" data-view="ask">💬 Ask &amp; Learn</button>
       <button class="tab" data-view="course" disabled>🎓 Fresh → Pro</button>
@@ -250,8 +256,7 @@ body{background:radial-gradient(ellipse at 20% -20%,#1a2c50 0,transparent 42%),v
       <div class="chat" id="chatPane-topics" style="flex:1"></div>
     </div>
   </div>
-  <div id="inputBar" class="hidden"><div id="engineHint" style="font-size:11px;color:var(--dim);max-width:145px;line-height:1.4">Groq primary · Ollama fallback · Web lookup on missing sources</div>
-    <div id="engineHint" style="font-size:11px;color:var(--dim);max-width:145px;line-height:1.4">Groq primary · Ollama fallback · web search on missing sources</div>
+  <div id="inputBar" class="hidden"><div id="engineHint" style="font-size:11px;color:var(--dim);max-width:180px;line-height:1.4">Groq primary · Ollama fallback · web search on missing sources</div>
     <textarea id="msgInput" rows="1" placeholder="Ask anything… (Enter to send, Shift+Enter for new line)"></textarea>
     <button id="sendBtn">Send</button>
   </div>
@@ -260,6 +265,6 @@ body{background:radial-gradient(ellipse at 20% -20%,#1a2c50 0,transparent 42%),v
 <div id="overlay" class="hidden"><div class="spinner"></div><div id="overlayText">Working…</div></div>
 <input type="file" id="fileInput" multiple class="hidden" accept=".pdf,.txt,.md,.csv,.json,.log,.py,.html,.xml">
 
-<script src="/static/app.js?v=4"></script>
+<script src="/static/app.js?v=5"></script>
 </body>
 </html>
