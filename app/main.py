@@ -79,29 +79,43 @@ def models():
 
 
 
+def _groq_chat_model_ids() -> list[str]:
+    """Return models likely to support text chat, using the authenticated catalog."""
+    import requests
+
+    response = requests.get(
+        f"{config.API_BASE_URL}/models",
+        headers={"Authorization": f"Bearer {config.API_KEY}"},
+        timeout=(5, 15),
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
+        raise ValueError("Groq returned an unexpected model catalog.")
+    model_ids = set()
+    for item in payload["data"]:
+        if not isinstance(item, dict) or not item.get("id"):
+            continue
+        model_id = str(item["id"]).strip()
+        try:
+            context_window = int(item.get("context_window") or 0)
+        except (TypeError, ValueError):
+            context_window = 0
+        # Exclude known non-chat families and models too small for useful tutoring.
+        if context_window >= 4096 and not any(
+            part in model_id.lower() for part in ("whisper", "orpheus", "guard", "speech")
+        ):
+            model_ids.add(model_id)
+    return sorted(model_ids)
+
+
 @app.get("/api/provider/models")
 def provider_models():
-    """List model IDs available to the configured Groq API key."""
+    """List text-chat model IDs available to the configured Groq API key."""
     if not config.API_KEY:
         return {"configured": False, "provider": "Groq", "active_model": config.API_MODEL, "models": []}
     try:
-        import requests
-        response = requests.get(
-            f"{config.API_BASE_URL}/models",
-            headers={"Authorization": f"Bearer {config.API_KEY}"},
-            timeout=(5, 15),
-        )
-        response.raise_for_status()
-        # /models also returns audio, speech, and safety models. Keep only
-        # general-purpose text models suitable for /chat/completions.
-        models = sorted({
-            str(item.get("id", "")).strip()
-            for item in response.json().get("data", [])
-            if isinstance(item, dict)
-            and item.get("id")
-            and int(item.get("context_window") or 0) >= 4096
-            and not any(part in str(item.get("id", "")).lower() for part in ("whisper", "orpheus", "guard", "speech"))
-        })
+        models = _groq_chat_model_ids()
         return {"configured": True, "provider": "Groq", "active_model": config.API_MODEL, "models": models}
     except Exception as exc:
         status_code = getattr(getattr(exc, "response", None), "status_code", None)
@@ -114,18 +128,11 @@ def select_provider_model(body: ModelSelectIn):
     if not config.API_KEY:
         raise HTTPException(400, "Add your Groq API key to .env and restart OfflineTutor.")
     try:
-        import requests
-        response = requests.get(
-            f"{config.API_BASE_URL}/models",
-            headers={"Authorization": f"Bearer {config.API_KEY}"},
-            timeout=(5, 15),
-        )
-        response.raise_for_status()
-        available = {str(item.get("id", "")) for item in response.json().get("data", []) if isinstance(item, dict)}
+        available = set(_groq_chat_model_ids())
     except Exception as exc:
-        raise HTTPException(502, "Unable to verify Groq model access. Check the API key and connection.") from exc
+        raise HTTPException(502, "Unable to verify Groq chat-model access. Check the API key and connection.") from exc
     if body.model not in available:
-        raise HTTPException(400, "That model is not available to this Groq API key.")
+        raise HTTPException(400, "That model is not available as a supported chat model to this Groq API key.")
     config.API_MODEL = body.model
     return {"active_model": config.API_MODEL, "note": "Runtime selection only. Set API_MODEL in .env to keep it after restart."}
 
