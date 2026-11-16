@@ -13,9 +13,9 @@ def _bool_env(name: str, default: bool) -> bool:
 
 # Generation routing: cloud API first when configured, then local Ollama.
 LLM_PROVIDER = _env("LLM_PROVIDER", "auto").lower()
-API_BASE_URL = _env("API_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+API_BASE_URL = _env("API_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
 API_KEY = _env("API_KEY", "")
-API_MODEL = _env("API_MODEL", "gpt-4o-mini")
+API_MODEL = _env("API_MODEL", "llama-3.3-70b-versatile")
 API_TIMEOUT = int(_env("API_TIMEOUT", "45"))
 API_MAX_RETRIES = int(_env("API_MAX_RETRIES", "0"))
 
@@ -42,3 +42,8 @@ PASS_THRESHOLD = 0.6
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "sessions")
 MAX_UPLOAD_MB = 100
+
+WEB_SEARCH_ENABLED = _bool_env("WEB_SEARCH_ENABLED", True)
+WEB_SEARCH_URL = _env("WEB_SEARCH_URL", "https://html.duckduckgo.com/html/")
+WEB_SEARCH_TIMEOUT = int(_env("WEB_SEARCH_TIMEOUT", "12"))
+WEB_SEARCH_TOP_K = int(_env("WEB_SEARCH_TOP_K", "5"))
