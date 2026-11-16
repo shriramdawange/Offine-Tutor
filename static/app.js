@@ -40,6 +40,32 @@ async function loadStatus(){
   }
 }
 
+
+async function loadGroqModels(){
+  const select=$("#groqModel");
+  try{
+    const data=await api("/api/provider/models");
+    select.innerHTML="";
+    if(!data.configured){select.add(new Option("Add Groq API key",""));select.disabled=true;return;}
+    if(!data.models.length){select.add(new Option("No models available",""));select.disabled=true;return;}
+    data.models.forEach(model=>select.add(new Option(model,model)));
+    select.value=data.active_model;
+    if(!select.value)select.selectedIndex=0;
+    select.disabled=false;
+  }catch(e){select.innerHTML="";select.add(new Option("Groq models unavailable",""));select.disabled=true;toast(e.message);}
+}
+$("#groqModel").onchange=async()=>{
+  const model=$("#groqModel").value;if(!model)return;
+  try{const r=await api("/api/provider/model",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({model})});toast("Selected "+r.active_model+" for this run");loadStatus();}
+  catch(e){toast(e.message);loadGroqModels();}
+};
+$("#testGroqBtn").onclick=async()=>{
+  const b=$("#testGroqBtn");b.disabled=true;b.textContent="Testing…";
+  try{const r=await api("/api/provider/test",{method:"POST"});toast("Groq connected · "+r.model);}
+  catch(e){toast(e.message);}
+  finally{b.disabled=false;b.textContent="Test Groq";}
+};
+
 async function loadSessions(){
   const list = await api("/api/sessions");
   const el = $("#sessionList"); el.innerHTML="";
@@ -465,7 +491,7 @@ function openFilesModal(){
 }
 
 (async ()=>{
-  await loadStatus(); setInterval(loadStatus,15000);
+  await Promise.all([loadStatus(),loadGroqModels()]); setInterval(loadStatus,15000);
   const list=await loadSessions();
   if(list.length){ openSession(list[0].id); }
   else{
