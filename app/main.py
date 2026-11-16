@@ -92,10 +92,15 @@ def provider_models():
             timeout=(5, 15),
         )
         response.raise_for_status()
+        # /models also returns audio, speech, and safety models. Keep only
+        # general-purpose text models suitable for /chat/completions.
         models = sorted({
             str(item.get("id", "")).strip()
             for item in response.json().get("data", [])
-            if isinstance(item, dict) and item.get("id")
+            if isinstance(item, dict)
+            and item.get("id")
+            and int(item.get("context_window") or 0) >= 4096
+            and not any(part in str(item.get("id", "")).lower() for part in ("whisper", "orpheus", "guard", "speech"))
         })
         return {"configured": True, "provider": "Groq", "active_model": config.API_MODEL, "models": models}
     except Exception as exc:
@@ -134,7 +139,7 @@ def test_provider():
         response = requests.post(
             f"{config.API_BASE_URL}/chat/completions",
             headers={"Authorization": f"Bearer {config.API_KEY}", "Content-Type": "application/json"},
-            json={"model": config.API_MODEL, "messages": [{"role": "user", "content": "Reply with OK."}], "max_tokens": 8, "temperature": 0},
+            json={"model": config.API_MODEL, "messages": [{"role": "user", "content": "Reply with OK."}], "max_completion_tokens": 8, "temperature": 0},
             timeout=(5, config.API_TIMEOUT),
         )
         response.raise_for_status()
