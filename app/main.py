@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import config, ingest, llm, retriever, store, tutor, websearch
+from . import config, ingest, llm, retriever, store, tutor, websearch, websearch
 
 app = FastAPI(title="API-Integrated Tutor")
 
