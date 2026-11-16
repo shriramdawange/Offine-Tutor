@@ -26,7 +26,7 @@ If the cloud API is unavailable, Ollama is used automatically. The first local f
 | Variable | Default | Meaning |
 |---|---|---|
 | `LLM_PROVIDER` | `auto` | `auto` or `api` tries cloud first; `local` uses Ollama directly |
-| `API_BASE_URL` | OpenAI API URL | Base URL for an Groq OpenAI-compatible API |
+| `API_BASE_URL` | OpenAI API URL | Base URL for the Groq OpenAI-compatible API |
 | `API_KEY` | empty | Cloud API key; never commit it |
 | `API_MODEL` | `llama-3.3-70b-versatile` | Cloud model name supported by the configured provider |
 | `API_TIMEOUT` | `45` | Cloud request timeout in seconds |

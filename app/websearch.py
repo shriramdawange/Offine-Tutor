@@ -48,8 +48,8 @@ def search(query, limit=None):
     output, seen = [], set()
     for item in parser.items:
         url = _valid_url(item["url"])
-        title = re.sub(r"\\s+", " ", item["title"]).strip()
-        snippet = re.sub(r"\\s+", " ", item["snippet"]).strip()
+        title = re.sub(r"\s+", " ", item["title"]).strip()
+        snippet = re.sub(r"\s+", " ", item["snippet"]).strip()
         if not url or url in seen or not title: continue
         seen.add(url)
         output.append({"title": title[:200], "url": url, "snippet": snippet[:700]})
