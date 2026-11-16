@@ -50,7 +50,7 @@ def qa_messages(sid: str, query: str, web_results: list[dict] | None = None) -> 
     sys = QA_SYSTEM.replace(
         "- Answer ONLY from the CONTEXT excerpts below.",
         "- Prefer uploaded-document context. Use WEB SEARCH RESULTS only for missing information and clearly label external facts."
-    ) + f"\n\nDOCUMENT CONTEXT:\n{ctx}{web_context}"
+    ) + "\n\nDOCUMENT CONTEXT:\n" + ctx + web_context
     msgs = [{"role": "system", "content": sys}]
     msgs += [m for m in history_messages(sid) if m["role"] != "system"]
     msgs.append({"role": "user", "content": query})
