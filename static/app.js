@@ -30,9 +30,11 @@ function md(src){
 async function loadStatus(){
   try{
     const st = await api("/api/status");
-    $("#statusChip").innerHTML = st.ollama
-      ? `<span class="dot" style="background:var(--accent2)"></span>Ollama ready · ${esc(st.model)}`
-      : `<span class="dot" style="background:var(--danger)"></span>Ollama not reachable`;
+    const local = st.local_available ? "Ollama ready · " + esc(st.local_model) : "Ollama unavailable";
+    const cloud = st.cloud_configured ? "Groq ready · " + esc(st.cloud_model) : "Groq key not set";
+    $("#statusChip").innerHTML = `<span class="dot" style="background:${st.cloud_configured ? "var(--accent2)" : "var(--warn)"}"></span>${cloud}<br><span class="dot" style="background:${st.local_available ? "var(--accent2)" : "var(--danger)"}"></span>${local}`;
+    const hint = $("#engineHint");
+    if(hint) hint.textContent = cloud + " · " + local + (st.web_search_enabled ? " · web fallback on" : " · web fallback off");
   }catch(_){
     $("#statusChip").innerHTML = `<span class="dot" style="background:var(--danger)"></span>Server offline`;
   }
