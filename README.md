@@ -1,6 +1,6 @@
-# API-Integrated Tutor (Cloud-first + local fallback)
+# OfflineTutor — AI Study Workspace
 
-A document-grounded AI study companion. Upload PDFs, notes, text, code, CSV, and other supported files, then ask questions or learn the material through a structured course. Retrieval remains local and uses the project's lightweight, dependency-free BM25 implementation.
+A document-grounded AI study workspace with Groq-first reasoning, live web lookup, and automatic Ollama fallback. Upload PDFs, notes, text, code, CSV, and other supported files, then ask questions or learn the material through a structured course. Retrieval remains local and uses the project's lightweight, dependency-free BM25 implementation.
 
 ## What changed
 
@@ -26,9 +26,9 @@ If the cloud API is unavailable, Ollama is used automatically. The first local f
 | Variable | Default | Meaning |
 |---|---|---|
 | `LLM_PROVIDER` | `auto` | `auto` or `api` tries cloud first; `local` uses Ollama directly |
-| `API_BASE_URL` | OpenAI API URL | Base URL for an OpenAI-compatible API |
+| `API_BASE_URL` | OpenAI API URL | Base URL for an Groq OpenAI-compatible API |
 | `API_KEY` | empty | Cloud API key; never commit it |
-| `API_MODEL` | `gpt-4o-mini` | Cloud model name supported by the configured provider |
+| `API_MODEL` | `llama-3.3-70b-versatile` | Cloud model name supported by the configured provider |
 | `API_TIMEOUT` | `45` | Cloud request timeout in seconds |
 | `OLLAMA_URL` | `http://localhost:11434` | Local Ollama endpoint |
 | `OLLAMA_MODEL` | `qwen2.5-coder:3b-instruct-q4_K_M` | Local fallback model |
@@ -54,3 +54,16 @@ For an OpenAI-compatible provider, set `API_BASE_URL`, `API_KEY`, and `API_MODEL
 ## Supported files
 
 See `app/ingest.py` for the authoritative list of supported file extensions.
+
+
+## Online search
+
+When the document index has no matching chunks, Ask & Learn performs a best-effort DuckDuckGo HTML lookup and adds source links to the answer. It uses the existing requests package and Python standard library; no search SDK or key is required. Disable it with WEB_SEARCH_ENABLED=false. Search requires internet access and external sources should be checked.
+
+## Ollama model discovery
+
+GET /api/models lists locally installed Ollama models. When OLLAMA_MODEL is unavailable but another model is installed, fallback selects an installed model automatically. If none exist, the existing auto-pull setting prepares the configured default.
+
+## Groq setup
+
+Copy .env.example to .env, set API_KEY to your Groq key, and never commit .env. The defaults use Groq's OpenAI-compatible endpoint and a default model; choose another enabled model if needed.
