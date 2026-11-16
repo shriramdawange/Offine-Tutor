@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import config, ingest, llm, retriever, store, tutor
+from . import config, ingest, llm, retriever, store, tutor, websearch
 
 app = FastAPI(title="API-Integrated Tutor")
 
@@ -58,7 +58,19 @@ def status():
         **llm.provider_status(),
         "model": config.MODEL,
         "ollama": llm.model_available(),
+        "web_search_enabled": config.WEB_SEARCH_ENABLED,
         "sessions": len(store.STORE.list_sessions()),
+    }
+
+
+@app.get("/api/models")
+def models():
+    return {
+        "cloud_configured": bool(config.API_KEY),
+        "cloud_model": config.API_MODEL,
+        "ollama_url": config.OLLAMA_URL,
+        "ollama_models": llm.available_local_models(),
+        "selected_local_model": llm.provider_status()["local_model"],
     }
 
 
@@ -283,7 +295,12 @@ def _plan(sid: str, body: ChatIn):
         if last and (last.startswith("course:") or last.startswith("topic:")):
             msgs = tutor.followup_messages(sid, query)
         else:
-            msgs = tutor.qa_messages(sid, query)
+            chunks = retriever.RETRIEVER.search(sid, query)
+            # Search online only when the uploaded-document index has no matching chunks.
+            web_results = websearch.search(query) if not chunks else []
+            msgs = tutor.qa_messages(sid, query, web_results=web_results)
+            if web_results:
+                body._web_sources = web_results
         user_text = query
 
     return msgs, tag, temp, pane, user_text, done_text
@@ -311,10 +328,17 @@ async def chat_stream(sid: str, body: ChatIn):
     def gen():
         full = []
         ok = True
+        web_sources = getattr(body, "_web_sources", [])
         try:
             for token in llm.stream_chat(msgs, temperature=temp):
                 full.append(token)
                 yield token
+            if web_sources:
+                appendix = "\n\n### Web sources\n" + "\n".join(
+                    f"- [{item['title']}]({item['url']})" for item in web_sources
+                )
+                full.append(appendix)
+                yield appendix
         except llm.LLMError as e:
             ok = False
             yield f"\n\n__ERROR__ {e}"

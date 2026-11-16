@@ -18,15 +18,28 @@ class LLMError(RuntimeError):
     pass
 
 
-def _local_model_available() -> bool:
+def available_local_models() -> list[str]:
+    """Return every model installed in the connected Ollama instance."""
     try:
         response = requests.get(f"{config.OLLAMA_URL}/api/tags", timeout=3)
         response.raise_for_status()
-        names = [m.get("name", "") for m in response.json().get("models", [])]
-        base = config.MODEL.split(":")[0]
-        return any(name == config.MODEL or name.startswith(base + ":") for name in names)
-    except (requests.RequestException, ValueError):
-        return False
+        return sorted({str(m.get("name", "")) for m in response.json().get("models", []) if m.get("name")})
+    except (requests.RequestException, ValueError, TypeError):
+        return []
+
+
+def _selected_local_model() -> str:
+    installed = available_local_models()
+    if config.MODEL in installed:
+        return config.MODEL
+    if installed:
+        configured_family = config.MODEL.split(":")[0]
+        return next((name for name in installed if name.split(":")[0] == configured_family), installed[0])
+    return config.MODEL
+
+
+def _local_model_available() -> bool:
+    return bool(available_local_models())
 
 
 def _ensure_local_model() -> None:
@@ -127,7 +140,7 @@ def _cloud_complete(messages: list[dict], temperature: float) -> str:
 def _local_stream(messages: list[dict], temperature: float) -> Iterator[str]:
     _ensure_local_model()
     payload = {
-        "model": config.MODEL,
+        "model": _selected_local_model(),
         "messages": messages,
         "stream": True,
         "keep_alive": config.KEEP_ALIVE,
@@ -201,7 +214,10 @@ def provider_status() -> dict:
         "provider_mode": config.LLM_PROVIDER,
         "preferred_provider": preferred,
         "cloud_configured": cloud_configured,
-        "local_model": config.MODEL,
+        "local_model": _selected_local_model(),
+        "local_models": available_local_models(),
         "local_available": local_ready,
+        "cloud_provider": "Groq-compatible API",
+        "cloud_model": config.API_MODEL,
         "automatic_fallback": True,
     }

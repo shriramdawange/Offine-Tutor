@@ -147,17 +147,50 @@ button{font-family:inherit}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px}
 ::-webkit-scrollbar-track{background:transparent}
 </style>
+<style>
+:root{--bg:#090e18;--bg2:#101827;--bg3:#172338;--border:#26344b;--fg:#edf3ff;--dim:#9aa9bf;--accent:#7c9cff;--accent2:#62d6b0;--radius:16px}
+body{background:radial-gradient(ellipse at 20% -20%,#1a2c50 0,transparent 42%),var(--bg);font-family:Inter,"Segoe UI",system-ui,sans-serif}
+#sidebar{background:rgba(13,21,36,.96);border-color:var(--border);width:274px;min-width:274px}
+.brand{padding:24px 20px 20px}
+.brand h1{font-size:19px;letter-spacing:-.5px}
+.brand small{font-size:11px;letter-spacing:.25px;margin-top:6px}
+#newSessionBtn{margin:16px 14px 8px;border-radius:12px;padding:12px 14px;background:linear-gradient(135deg,#718fff,#8b78ff);box-shadow:0 8px 24px #647dff2b}
+.sess{padding:11px 12px;border-radius:11px;margin:4px 2px}
+.sess.active{background:#1b2b49;outline:1px solid #5975b8}
+#topbar{padding:15px 24px;background:rgba(13,21,36,.86);backdrop-filter:blur(16px)}
+#sessTitle{font-size:16px;letter-spacing:-.2px}
+.tab{padding:9px 14px;border-radius:10px}
+.tab.active{background:#1c2b47;border-color:#33486c;color:#fff}
+.btn{border-radius:11px;padding:10px 16px}
+.btn.primary{background:linear-gradient(135deg,#718fff,#8b78ff);border-color:transparent;box-shadow:0 6px 20px #647dff26}
+#inputBar{padding:16px 24px;background:rgba(13,21,36,.92);backdrop-filter:blur(16px)}
+#msgInput{border-radius:14px;padding:13px 16px;background:#111d30;border-color:#2b3c56}
+#sendBtn{border-radius:12px;background:linear-gradient(135deg,#718fff,#8b78ff);padding:12px 24px}
+.msg{padding:15px 18px;border-radius:16px;line-height:1.68}
+.msg.user{background:linear-gradient(135deg,#293f72,#27375c);border-bottom-right-radius:5px}
+.msg.bot{background:#111c2e;border-color:#263852;border-bottom-left-radius:5px}
+.hero h2{font-size:27px;letter-spacing:-.7px}
+.dropzone{border-radius:18px;background:#111c2e;border-color:#344761}
+#courseSide{background:#0f192a;border-color:var(--border)}
+.lesson-row{border-radius:11px;background:#16243a}
+#topicPanelWrap{background:#101a2b}
+.chip{border-radius:12px;background:#17253a}
+.modal{border-radius:18px;background:#101b2c;border-color:#2b3a53}
+#toast{border-color:#344761;background:#15243a}
+@media(max-width:850px){#sidebar{width:220px;min-width:220px}#courseSide{width:230px;min-width:230px}.tabs .tab{padding:7px 9px;font-size:11px}}
+@media(max-width:650px){body{height:100dvh}#sidebar{width:64px;min-width:64px}#sidebar .brand{padding:15px 6px;text-align:center}#sidebar .brand h1{font-size:0}#sidebar .brand h1:first-letter{font-size:20px}#sidebar .brand small,#newSessionBtn{display:none}#sessionList{padding:4px}#sessionList .sess{padding:8px 4px;justify-content:center}#sessionList .sess>div{display:none}#topbar{padding:10px;gap:6px;flex-wrap:wrap}#sessTitle{max-width:45vw;font-size:13px}.tabs{order:5;width:100%;margin:3px 0 0}.tabs .tab{flex:1;font-size:10px;padding:7px 3px}#courseSide{display:none}.chat{padding:12px}.msg{max-width:94%}#inputBar{padding:10px;gap:7px}#sendBtn{padding:10px 14px}.hero{padding:18px}.dropzone{padding:28px 15px}}
+</style>
 </head>
 <body>
 <div id="sidebar">
   <div class="brand">
     <h1>📚 Offline<span>Tutor</span></h1>
-    <small>100% local · nothing leaves your PC</small>
+    <small>AI study workspace · cloud + local</small>
   </div>
   <button id="newSessionBtn">+ New study session</button>
   <div id="sessionList"></div>
   <div class="side-foot">
-    <span id="statusChip"><span class="dot" style="background:var(--warn)"></span>checking Ollama…</span><br><br>
+    <span id="statusChip"><span class="dot" style="background:var(--warn)"></span>checking AI engines…</span><br><br>
     <span id="wipeAll">Delete ALL data</span>
   </div>
 </div>
@@ -217,7 +250,8 @@ button{font-family:inherit}
       <div class="chat" id="chatPane-topics" style="flex:1"></div>
     </div>
   </div>
-  <div id="inputBar" class="hidden">
+  <div id="inputBar" class="hidden"><div id="engineHint" style="font-size:11px;color:var(--dim);max-width:145px;line-height:1.4">Groq primary · Ollama fallback · Web lookup on missing sources</div>
+    <div id="engineHint" style="font-size:11px;color:var(--dim);max-width:145px;line-height:1.4">Groq primary · Ollama fallback · web search on missing sources</div>
     <textarea id="msgInput" rows="1" placeholder="Ask anything… (Enter to send, Shift+Enter for new line)"></textarea>
     <button id="sendBtn">Send</button>
   </div>
@@ -226,6 +260,6 @@ button{font-family:inherit}
 <div id="overlay" class="hidden"><div class="spinner"></div><div id="overlayText">Working…</div></div>
 <input type="file" id="fileInput" multiple class="hidden" accept=".pdf,.txt,.md,.csv,.json,.log,.py,.html,.xml">
 
-<script src="/static/app.js?v=3"></script>
+<script src="/static/app.js?v=4"></script>
 </body>
 </html>
