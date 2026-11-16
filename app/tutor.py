@@ -265,7 +265,6 @@ Lesson goal: {lesson['summary']}
 
 {TEST_INSTRUCTIONS}"""
     raw = llm.complete([{"role": "user", "content": prompt}], temperature=0.4)
-    parsed = _parse_json_list(raw)
     questions = []
     for item in raw_items(raw):
         q = item.get("question")
